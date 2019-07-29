@@ -1,46 +1,44 @@
 import math
 import pprint
+import copy
 
 PRINT_DEBUG = True
 
 # Solves the sudoku and returns a boolean
 def solve(sudoku):
     global PRINT_DEBUG
-    nuke(sudoku)
-    if PRINT_DEBUG:
-        pprint.pprint(sudoku)
-        PRINT_DEBUG = False
-    # print("---- NUKED SUDOKU ----")
-    # pprint.pprint(sudoku)
-    # print("---- CONTAINS EMPTY-----")
-    # print(contains_empty(sudoku))
-    if contains_empty(sudoku):
+    nuked = nuke(sudoku)
+    print("---- NUKED SUDOKU ----")
+    pprint.pprint(nuked)
+    print("---- CONTAINS EMPTY-----")
+    print(contains_empty(nuked))
+    if contains_empty(nuked):
         return False
-    # print("------NOT SOLVED-----")
-    # print(not_solved(sudoku))
-    if not not_solved(sudoku):
-        print("ok")
+    print("------NOT SOLVED-----")
+    print(not_solved(nuked))
+    if not not_solved(nuked):
         return True
-    # print("-----UNSOLVED POSITIONS------")
-    # print(unsolved_positions(sudoku))
-    for i, j  in unsolved_positions(sudoku):
-        # print("-----CURRENT POSITION-----")
-        # pprint.pprint((i, j))
-        # print()
-        temp = sudoku[i][j]
-        for possibilitiy in sudoku[i][j]:
-            # print("---- CURRENT POSSIBILTY-----")
-            # print(possibilitiy)
-            sudoku[i][j] = {possibilitiy}
-            # print("----SUDOKU WITH POSSIBILITY----")
-            # pprint.pprint(sudoku)
+    print("-----UNSOLVED POSITIONS------")
+    print(unsolved_positions(nuked))
+    for i, j  in unsolved_positions(nuked):
+        print("-----CURRENT POSITION-----")
+        pprint.pprint((i, j))
+        print()
+        temp = nuked[i][j]
+        for possibilitiy in nuked[i][j]:
+            print("---- CURRENT POSSIBILTY-----")
+            print(possibilitiy)
+            nuked[i][j] = {possibilitiy}
+            print("----SUDOKU WITH POSSIBILITY----")
+            pprint.pprint(nuked)
             # remove all possibilities except possibility
-            if solve(sudoku):
+            if solve(nuked):
                 return True
             # add possibilies back
-            sudoku[i][j] = temp
-            # print("-----SUDOKU AFTER POSSIBILITY----")
-            # pprint.pprint(sudoku)
+        nuked[i][j] = temp
+        print("-----SUDOKU AFTER POSSIBILITY----")
+        pprint.pprint(nuked)
+        return False
     return False
 
 def contains_empty(sudoku):
@@ -54,7 +52,8 @@ def unsolved_positions(sudoku):
 def not_solved(sudoku):
     return any(any(len(item) > 1 for item in row) for row in sudoku)
 
-def nuke(sudoku):
+def nuke(input_sudoku):
+    sudoku = copy.deepcopy(input_sudoku)
     queue = init_queue(sudoku)
     while queue:
         k, i, j = queue.pop()
@@ -62,6 +61,7 @@ def nuke(sudoku):
         nuke_at_coords(sudoku, k, [(i, dj) for dj in range(len(sudoku))], queue)
         nuke_at_coords(sudoku, k, [(di, j) for di in range(len(sudoku))], queue)
         sudoku[i][j] = {k}
+    return sudoku
 
 def nuke_at_coords(sudoku, k, coords, queue):
     for i, j in coords:
@@ -154,12 +154,25 @@ def main():
         [None, None, 6, None, None, None, None, None, None]]
     )
     
-    # solve(sudoku)
+    another_solution = [
+        [9, 5, 7, 6, 1, 3, 2, 8, 4],
+        [4, 8, 3, 2, 5, 7, 1, 9, 6],
+        [6, 1, 2, 8, 4, 9, 5, 3, 7],
+        [1, 7, 8, 3, 6, 4, 9, 5, 2],
+        [5, 2, 4, 9, 7, 1, 3, 6, 8],
+        [3, 6, 9, 5, 2, 8, 7, 4, 1],
+        [8, 4, 5, 7, 9, 2, 6, 1, 3],
+        [2, 9, 1, 4, 3, 6, 8, 7, 5],
+        [7, 3, 6, 1, 8, 5, 4, 2, 9]
+    ]
     # pprint.pprint(solve(hard))
     # pprint.pprint(sudoku)
     # pprint.pprint(hard)
-    solve(another)
-    pprint.pprint(another)
+    
+    # solve(another)
+    # pprint.pprint(another)
+    print(solve(sudoku))
+    
 
 if __name__ == '__main__':
     main()
