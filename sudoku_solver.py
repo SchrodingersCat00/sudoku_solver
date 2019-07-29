@@ -8,36 +8,20 @@ PRINT_DEBUG = True
 def solve(sudoku):
     global PRINT_DEBUG
     nuked = nuke(sudoku)
-    print("---- NUKED SUDOKU ----")
-    pprint.pprint(nuked)
-    print("---- CONTAINS EMPTY-----")
-    print(contains_empty(nuked))
     if contains_empty(nuked):
         return False
-    print("------NOT SOLVED-----")
-    print(not_solved(nuked))
     if not not_solved(nuked):
+        pprint.pprint(nuked)
         return True
-    print("-----UNSOLVED POSITIONS------")
-    print(unsolved_positions(nuked))
     for i, j  in unsolved_positions(nuked):
-        print("-----CURRENT POSITION-----")
-        pprint.pprint((i, j))
-        print()
         temp = nuked[i][j]
         for possibilitiy in nuked[i][j]:
-            print("---- CURRENT POSSIBILTY-----")
-            print(possibilitiy)
             nuked[i][j] = {possibilitiy}
-            print("----SUDOKU WITH POSSIBILITY----")
-            pprint.pprint(nuked)
             # remove all possibilities except possibility
             if solve(nuked):
                 return True
             # add possibilies back
         nuked[i][j] = temp
-        print("-----SUDOKU AFTER POSSIBILITY----")
-        pprint.pprint(nuked)
         return False
     return False
 
@@ -169,9 +153,9 @@ def main():
     # pprint.pprint(sudoku)
     # pprint.pprint(hard)
     
-    # solve(another)
+    solve(another)
     # pprint.pprint(another)
-    print(solve(sudoku))
+    # print(solve(sudoku))
     
 
 if __name__ == '__main__':
