@@ -2,11 +2,8 @@ import math
 import pprint
 import copy
 
-PRINT_DEBUG = True
-
 # Solves the sudoku and returns a boolean
 def solve(sudoku):
-    global PRINT_DEBUG
     nuked = nuke(sudoku)
     if contains_empty(nuked):
         return False
@@ -149,14 +146,11 @@ def main():
         [2, 9, 1, 4, 3, 6, 8, 7, 5],
         [7, 3, 6, 1, 8, 5, 4, 2, 9]
     ]
-    # pprint.pprint(solve(hard))
-    # pprint.pprint(sudoku)
-    # pprint.pprint(hard)
-    
+
+    solve(sudoku)
+    solve(hard)
+    solve(medium)
     solve(another)
-    # pprint.pprint(another)
-    # print(solve(sudoku))
-    
 
 if __name__ == '__main__':
     main()
