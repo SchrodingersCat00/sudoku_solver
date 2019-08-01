@@ -30,12 +30,12 @@ def get_trick_coords(n):
     coords = []
     square_len = int(math.sqrt(n))
     for i in range(n):
-        coords.append([(i, dj) for dj in range(n)])
-        coords.append([(di, i) for di in range(n)])
+        yield [(i, dj) for dj in range(n)]
+        yield [(di, i) for di in range(n)]
     square_coords = [k*square_len for k in range(square_len)]
     for i in square_coords:
         for j in square_coords:
-            coords.append(square_indices(i, j, n))
+            yield square_indices(i, j, n)
     return coords
 
 def find_duplicates(sudoku, coords):
