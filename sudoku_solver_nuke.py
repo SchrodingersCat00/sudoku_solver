@@ -8,6 +8,8 @@ def solve(sudoku):
     while not_solved(sudoku):
         prev = copy.deepcopy(sudoku)
         juuners_trick(sudoku, queue)
+        other_trick(sudoku, queue)
+        eliminate_singletons(sudoku, queue)
         nuke(sudoku, queue)
         if prev == sudoku:
             print("This sudoku can not be solved")
@@ -27,16 +29,18 @@ def juuners_trick(sudoku, queue):
                     break
 
 def get_trick_coords(n):
-    coords = []
     square_len = int(math.sqrt(n))
-    for i in range(n):
-        yield [(i, dj) for dj in range(n)]
-        yield [(di, i) for di in range(n)]
+    for coords in get_row_col_coords(n, n):
+        yield coords
     square_coords = [k*square_len for k in range(square_len)]
     for i in square_coords:
         for j in square_coords:
             yield square_indices(i, j, n)
-    return coords
+
+def get_row_col_coords(size, length, base_i=0, base_j=0, start_i=0, start_j=0):
+    for n in range(size):
+        yield [(base_i + n, start_j + dj) for dj in range(length)] # rows
+        yield [(start_i + di, base_j + n) for di in range(length)] # columns
 
 def find_duplicates(sudoku, coords):
     duplicates = []
@@ -51,6 +55,42 @@ def find_duplicates(sudoku, coords):
             duplicates.append(current)
     return duplicates
 
+def other_trick(sudoku, queue):
+    square_len = int(math.sqrt(len(sudoku)))
+    square_coords = [k*square_len for k in range(square_len)]
+    for i in square_coords:
+        for j in square_coords:
+            counts = count_in_squares(sudoku, i, j)
+            for check_coords, nuke_coords in zip(
+                    get_row_col_coords(square_len, square_len, i, j, i, j), 
+                    get_row_col_coords(square_len, len(sudoku), i, j)):
+                nuke_all_singles(sudoku, check_coords, nuke_coords, counts, queue)
+
+def nuke_all_singles(sudoku, check_coords, nuke_coords, counts, queue):
+    square_size = int(math.sqrt(len(sudoku)))
+    i, j = check_coords[0]
+    for n in sudoku[i][j]:
+        count = 0
+        di, dj = check_coords[count]
+        while count < len(check_coords) - 1 and n in sudoku[di][dj]:
+            count += 1
+            di, dj = check_coords[count]
+        if n in sudoku[di][dj] and count + 1 == counts[n]:
+            # pprint.pprint(sudoku, width=150)
+            # print("n:", n)
+            # print("count:", count)
+            # print(check_coords)
+            # print(nuke_coords)
+            # pprint.pprint(counts)
+            # print()
+            nuke_at_coords(sudoku, n, nuke_coords, set(check_coords), queue)
+                
+def count_in_squares(sudoku, i, j):
+    counts = {k:0 for k in range(1, len(sudoku)+1)}
+    for si, sj in square_indices(i, j, len(sudoku)):
+        for option in sudoku[si][sj]:
+            counts[option] += 1
+    return counts
 
 def not_solved(sudoku):
     return any(any(len(item) > 1 for item in row) for row in sudoku)
@@ -61,6 +101,29 @@ def nuke(sudoku, queue):
         nuke_at_coords(sudoku, k, square_indices(i, j, len(sudoku)), {(i, j)}, queue)
         nuke_at_coords(sudoku, k, [(i, dj) for dj in range(len(sudoku))], {(i, j)} , queue)
         nuke_at_coords(sudoku, k, [(di, j) for di in range(len(sudoku))], {(i, j)}, queue)
+
+def find_singletons(sudoku, coords):
+    good = {i for i in range(len(sudoku))}
+    seen = set()
+    for i, j in coords:
+        for option in sudoku[i][j]:
+            if option in seen:
+                remove_from_el(good, option)
+            seen.add(option)
+    return [(k, i, j) for k in good for i, j in coords if k in sudoku[i][j] and len(sudoku[i][j]) > 1]
+
+def eliminate_singletons(sudoku, queue):
+    square_len = int(math.sqrt(len(sudoku)))
+    coordss = []
+    for i in range(len(sudoku)):
+        coordss.append([(i, dj) for dj in range(len(sudoku))])
+        coordss.append([(di, i) for di in range(len(sudoku))])
+    for i in [k*square_len for k in range(square_len)]:
+        for j in [k*square_len for k in range(square_len)]:
+            coordss.append(square_indices(i, j, len(sudoku)))
+    for coords in coordss:
+        for number, i, j in find_singletons(sudoku, coords):
+            queue.add((number, i, j))
 
 def nuke_at_coords(sudoku, k, coords, exceptset, queue):
     for i, j in coords:
@@ -108,63 +171,88 @@ def parse_sudoku(sudoku_list):
     return [[parse_item(item) for item in row] for row in sudoku_list]
 
 def main():
-    sudoku = parse_sudoku(
-        [[ 5, 3, None, None, 7, None, None, None, None],
-         [ 6, None, None, 1, 9, 5, None, None, None],
-         [ None, 9, 8, None, None, None, None, 6, None ],
-         [ 8, None, None, None, 6, None, None, None, 3 ],
-         [ 4, None, None, 8, None, 3, None, None, 1 ],
-         [ 7, None, None, None, 2, None, None, None, 6],
-         [ None, 6, None, None, None, None, 2, 8, None],
-         [ None, None, None, 4, 1, 9, None, None, 5],
-         [ None, None, None, None, 8, None, None, 7, 9]])
+    # sudoku = parse_sudoku(
+    #     [[ 5, 3, None, None, 7, None, None, None, None],
+    #      [ 6, None, None, 1, 9, 5, None, None, None],
+    #      [ None, 9, 8, None, None, None, None, 6, None ],
+    #      [ 8, None, None, None, 6, None, None, None, 3 ],
+    #      [ 4, None, None, 8, None, 3, None, None, 1 ],
+    #      [ 7, None, None, None, 2, None, None, None, 6],
+    #      [ None, 6, None, None, None, None, 2, 8, None],
+    #      [ None, None, None, 4, 1, 9, None, None, 5],
+    #      [ None, None, None, None, 8, None, None, 7, 9]])
     
-    solve(sudoku)
-    pprint.pprint(sudoku)
+    # solve(sudoku)
+    # pprint.pprint(sudoku)
 
-    medium = parse_sudoku(
-        [[6, None, None, 8, 1, 4, 9, None, None],
-        [5, None, None, 6, 9, None, None, 1, None],
-        [1, None, None, None, None, 3, None, None, None],
-        [None, 1, None, None, None, None, 6, 4, None],
-        [None, 5, None, None, None, None, None, 3, None],
-        [None, 7, 6, None, None, None, None, 9, None],
-        [None, None, None, 4, None, None, None, None, 9],
-        [None, 9, None, None, 5, 1, None, None, 3],
-        [None, None, 1, 3, 7, 9, None, None, 5]]
-    )
-    solve(medium)
-    pprint.pprint(medium)
+    # medium = parse_sudoku(
+    #     [[6, None, None, 8, 1, 4, 9, None, None],
+    #     [5, None, None, 6, 9, None, None, 1, None],
+    #     [1, None, None, None, None, 3, None, None, None],
+    #     [None, 1, None, None, None, None, 6, 4, None],
+    #     [None, 5, None, None, None, None, None, 3, None],
+    #     [None, 7, 6, None, None, None, None, 9, None],
+    #     [None, None, None, 4, None, None, None, None, 9],
+    #     [None, 9, None, None, 5, 1, None, None, 3],
+    #     [None, None, 1, 3, 7, 9, None, None, 5]]
+    # )
+    # solve(medium)
+    # pprint.pprint(medium)
 
-    hard = parse_sudoku(
-        [[None, None, None, None, None, None, 4, None, None],
-        [4, None, None, None, 3, 2, None, 5, 1],
-        [None, 5, 2, 6, 4, None, None, None, 3],
-        [None, 2, None, None, None, None, 5, None, None],
-        [None, None, None, 4, None, 3, None, None, None],
-        [None, None, 7, None, None, None, None, 3, None],
-        [6, None, None, None, 1, 4, 7, 9, None],
-        [7, 8, None, 2, 9, None, None, None, 6],
-        [None, None, 1, None, None, None, None, None, None]]
-    )
+    # hard = parse_sudoku(
+    #     [[None, None, None, None, None, None, 4, None, None],
+    #     [4, None, None, None, 3, 2, None, 5, 1],
+    #     [None, 5, 2, 6, 4, None, None, None, 3],
+    #     [None, 2, None, None, None, None, 5, None, None],
+    #     [None, None, None, 4, None, 3, None, None, None],
+    #     [None, None, 7, None, None, None, None, 3, None],
+    #     [6, None, None, None, 1, 4, 7, 9, None],
+    #     [7, 8, None, 2, 9, None, None, None, 6],
+    #     [None, None, 1, None, None, None, None, None, None]]
+    # )
 
-    solve(hard)
-    pprint.pprint(hard)
+    # solve(hard)
+    # pprint.pprint(hard)
 
-    another = parse_sudoku(
-        [[None, None, None, None, None, None, 2, None, None],
-        [None, 8, None, None, None, 7, None, 9, None, ],
-        [6, None, 2, None, None, None, 5, None, None],
-        [None, 7, None, None, 6, None, None, None, None],
-        [None, None, None, 9, None, 1, None, None, None],
-        [None, None, None, None, 2, None, None, 4, None],
-        [None, None, 5, None, None, None, 6, None, 3],
-        [None, 9, None, 4, None, None, None, 7, None],
-        [None, None, 6, None, None, None, None, None, None]]
-    )
+    # another = parse_sudoku(
+    #     [[None, None, None, None, None, None, 2, None, None],
+    #     [None, 8, None, None, None, 7, None, 9, None, ],
+    #     [6, None, 2, None, None, None, 5, None, None],
+    #     [None, 7, None, None, 6, None, None, None, None],
+    #     [None, None, None, 9, None, 1, None, None, None],
+    #     [None, None, None, None, 2, None, None, 4, None],
+    #     [None, None, 5, None, None, None, 6, None, 3],
+    #     [None, 9, None, 4, None, None, None, 7, None],
+    #     [None, None, 6, None, None, None, None, None, None]]
+    # )
 
-    solve(another)
-    pprint.pprint(another)
+    # solve(another)
+    # pprint.pprint(another)
+
+    juuner = [[8,0,0,0,0,7,0,0,0],[2,0,0,0,0,8,6,0,9],[3,0,0,0,9,0,0,0,0],[0,9,0,2,5,0,0,0,0],[0,0,4,0,0,0,5,0,0],
+     [0,0,0,0,6,4,0,3,0],[0,0,0,0,8,0,0,0,6],[7,0,2,1,0,0,0,0,5],[0,0,0,5,0,0,0,0,1]]
+    
+    for i in range(len(juuner)):
+        for j in range(len(juuner)):
+            if juuner[i][j] == 0:
+                juuner[i][j] = None
+    
+    parsed = parse_sudoku(juuner)
+    solve(parsed)
+    pprint.pprint(parsed, width=200)
 
 if __name__ == "__main__":
-    main()
+    # main()
+    queue = set()
+    sudoku = [[{8}, {1, 5}, {9}, {6}, {2}, {7}, {4}, {1, 5}, {3}],
+        [{2}, {4}, {5, 7}, {3}, {1}, {8}, {6}, {5, 7}, {9}],
+        [{3}, {6, 7}, {1, 6, 7}, {4}, {9}, {5}, {2, 7, 8}, {1, 2, 7, 8}, {2, 7, 8}],
+        [{1, 6}, {9}, {3, 7, 8}, {2}, {5}, {1, 3}, {7, 8}, {6, 7, 8}, {4}],
+        [{1, 6}, {2, 3, 7, 8}, {4}, {7, 8, 9}, {3, 7}, {1, 3, 9}, {5}, {2, 6, 7, 8, 9}, {2, 7, 8}],
+        [{5}, {2, 7, 8}, {7, 8}, {7, 8, 9}, {6}, {4}, {1, 2, 7, 8, 9}, {3}, {2, 7, 8}],
+        [{4, 9}, {1, 5}, {1, 5}, {7, 9}, {8}, {2, 3, 9}, {2, 3, 7, 9}, {2, 4, 7, 9}, {6}],
+        [{7}, {3, 6, 8}, {2}, {1}, {3, 4}, {3, 6, 9}, {3, 8, 9}, {4, 8, 9}, {5}],
+        [{4, 9}, {3, 6, 8}, {3, 6, 8}, {5}, {3, 4, 7}, {2, 3, 6, 9}, {2, 3, 7, 8, 9}, {2, 4, 7, 8, 9}, {1}]]
+
+    juuners_trick(sudoku, queue)
+    print(queue)
