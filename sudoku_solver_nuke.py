@@ -55,7 +55,7 @@ def find_duplicates(sudoku, coords):
             duplicates.append(current)
     return duplicates
 
-def other_trick(sudoku, queue): # fixen dat het niet enkel werkt voor squarelength
+def other_trick(sudoku, queue):
     square_len = int(math.sqrt(len(sudoku)))
     square_coords = [k*square_len for k in range(square_len)]
     for i in square_coords:
@@ -68,21 +68,9 @@ def other_trick(sudoku, queue): # fixen dat het niet enkel werkt voor squareleng
 
 def nuke_all_singles(sudoku, check_coords, nuke_coords, counts, queue):
     square_size = int(math.sqrt(len(sudoku)))
-    i, j = check_coords[0]
-    for n in sudoku[i][j]:
-        count = 0
-        di, dj = check_coords[count]
-        while count < len(check_coords) - 1 and n in sudoku[di][dj]:
-            count += 1
-            di, dj = check_coords[count]
-        if n in sudoku[di][dj] and count + 1 == counts[n]:
-            # pprint.pprint(sudoku, width=150)
-            # print("n:", n)
-            # print("count:", count)
-            # print(check_coords)
-            # print(nuke_coords)
-            # pprint.pprint(counts)
-            # print()
+    for n in range(1, len(sudoku) + 1):
+        count = sum(n in sudoku[di][dj] for di, dj in check_coords)
+        if count > 1 and count == counts[n]:
             nuke_at_coords(sudoku, n, nuke_coords, set(check_coords), queue)
                 
 def count_in_squares(sudoku, i, j):
